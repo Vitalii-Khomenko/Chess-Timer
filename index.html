@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chess Timer</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --active-color: #4CAF50; /* Green */
+            --inactive-color: #333333;
+            --lost-color: #e53935; /* Red */
+            --btn-bg: #444;
+            --btn-text: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none;
+            touch-action: manipulation; /* Improves touch response */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Settings Modal */
+        #setup-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .setup-container {
+            width: 100%;
+            max-width: 400px;
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        h1 { margin-bottom: 20px; font-size: 2rem; }
+        
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label { margin-bottom: 10px; font-size: 1.2rem; }
+        
+        input[type="number"] {
+            padding: 10px;
+            font-size: 1.5rem;
+            width: 100px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #333;
+            color: white;
+            text-align: center;
+        }
+
+        .btn-large {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background-color: var(--active-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .btn-large:active { transform: scale(0.98); }
+
+        /* Game Screen */
+        #game-screen {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Player Areas */
+        .timer-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--inactive-color);
+            border: none;
+            width: 100%;
+            position: relative;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Inverted top player for face-to-face play */
+        #player2-area {
+            transform: rotate(180deg); 
+            border-bottom: 4px solid #000;
+        }
+
+        .time-display {
+            font-size: 20vw; /* Responsive font size */
+            font-weight: bold;
+            font-variant-numeric: tabular-nums; /* Prevents jitter */
+            z-index: 2;
+        }
+        
+        /* Adjust font size for larger screens/landscape */
+        @media (min-aspect-ratio: 1/1) {
+            .time-display { font-size: 15vh; }
+        }
+
+        .player-label {
+            position: absolute;
+            font-size: 1rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            top: 20px;
+        }
+
+        .status-msg {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Active State */
+        .timer-btn.active {
+            background-color: var(--active-color);
+            color: #fff;
+        }
+
+        /* Time Low Warning (optional visual flair) */
+        .timer-btn.warn {
+            background-color: #f57f17;
+        }
+
+        /* Time Up State */
+        .timer-btn.lost {
+            background-color: var(--lost-color);
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            height: 80px;
+            background-color: #000;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .control-btn:active { background: #555; }
+        
+        #btn-pause.paused {
+            background: #FFC107;
+            color: #000;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+        <div class="setup-container">
+            <h1>Chess Timer</h1>
+            
+            <div class="input-group">
+                <label for="minutes">Minutes per player</label>
+                <input type="number" id="minutes" value="5" min="1" max="180">
+            </div>
+
+            <div class="input-group">
+                <label for="seconds">Extra Seconds (Increment)</label>
+                <input type="number" id="increment" value="0" min="0" max="60">
+            </div>
+
+            <button id="btn-start" class="btn-large">START</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen">
+        <!-- Player 2 Area (Top) -->
+        <div id="player2-area" class="timer-btn" onclick="handlePlayerTap(2)">
+            <span class="player-label">Player 2</span>
+            <div id="timer2" class="time-display">05:00</div>
+            <div id="status2" class="status-msg">TIME UP</div>
+        </div>
+
+        <!-- Central Controls -->
+        <div class="controls-bar">
+            <button id="btn-reset" class="control-btn" onclick="resetGame()">Reset</button>
+            <button id="btn-pause" class="control-btn" onclick="togglePause()">Pause</button>
+            <button id="btn-settings" class="control-btn" onclick="showSetup()">New</button>
+        </div>
+
+        <!-- Player 1 Area (Bottom) -->
+        <div id="player1-area" class="timer-btn" onclick="handlePlayerTap(1)">
+            <span class="player-label">Player 1</span>
+            <div id="timer1" class="time-display">05:00</div>
+            <div id="status1" class="status-msg">TIME UP</div>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let initialTimeMs = 5 * 60 * 1000;
+        let incrementMs = 0;
+        
+        let p1Time = 0;
+        let p2Time = 0;
+        
+        let activePlayer = null; // 1 or 2, or null if not started
+        let isPaused = false;
+        let isGameOver = false;
+        let lastTimestamp = 0;
+        let animationFrameId = null;
+
+        // Colors
+        const COLOR_ACTIVE = "#4CAF50";
+        const COLOR_INACTIVE = "#333333";
+        const COLOR_PAUSED = "#555555";
+        const COLOR_LOST = "#e53935";
+
+        // Setup elements
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        
+        const inputMinutes = document.getElementById('minutes');
+        const inputIncrement = document.getElementById('increment');
+        
+        const area1 = document.getElementById('player1-area');
+        const area2 = document.getElementById('player2-area');
+        const timer1El = document.getElementById('timer1');
+        const timer2El = document.getElementById('timer2');
+        const status1El = document.getElementById('status1');
+        const status2El = document.getElementById('status2');
+        const btnPause = document.getElementById('btn-pause');
+
+        // Initialization
+        document.getElementById('btn-start').addEventListener('click', startGame);
+
+        function startGame() {
+            const mins = parseInt(inputMinutes.value) || 5;
+            const inc = parseInt(inputIncrement.value) || 0;
+            
+            initialTimeMs = mins * 60 * 1000;
+            incrementMs = inc * 1000;
+
+            p1Time = initialTimeMs;
+            p2Time = initialTimeMs;
+            
+            isGameOver = false;
+            isPaused = true; // Starts paused, wait for first tap
+            activePlayer = null;
+
+            updateDisplay(1, p1Time);
+            updateDisplay(2, p2Time);
+            
+            // Reset UI states
+            area1.classList.remove('active', 'lost');
+            area2.classList.remove('active', 'lost');
+            status1El.style.display = 'none';
+            status2El.style.display = 'none';
+            btnPause.textContent = "Start";
+            btnPause.classList.remove('paused');
+
+            setupScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+        }
+
+        function showSetup() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            setupScreen.style.display = 'flex';
+            gameScreen.style.display = 'none';
+        }
+
+        function resetGame() {
+            if (confirm("Reset current timer?")) {
+                startGame();
+            }
+        }
+
+        function togglePause() {
+            if (isGameOver) return;
+            
+            // If game hasn't really started (activePlayer is null)
+            if (activePlayer === null) {
+                // Determine who starts? Usually White (Player 1) starts.
+                // We let them tap to start. But if they hit "Start" button (which is this pause button initially)
+                // We can treat it as unpausing. But we need a player. 
+                // Standard chess clock: Pause button pauses. 
+                // If "Start" is displayed, it implies pending action.
+                // Let's force a tap on the timer to pick starting player if null.
+                alert("Tap a clock to start that player's turn!");
+                return;
+            }
+
+            isPaused = !isPaused;
+            if (isPaused) {
+                btnPause.textContent = "Resume";
+                btnPause.classList.add('paused');
+                lastTimestamp = 0; // reset timestamp
+            } else {
+                btnPause.textContent = "Pause";
+                btnPause.classList.remove('paused');
+                lastTimestamp = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function handlePlayerTap(playerClicked) {
+            if (isGameOver) return;
+            
+            // Case 1: Game hasn't started yet.
+            if (activePlayer === null) {
+                // User requirement: Tapping a player's side starts THAT player's timer.
+                // This allows a player to say "I'm starting" by tapping their own area.
+                activePlayer = playerClicked;
+                
+                isPaused = false;
+                lastTimestamp = performance.now();
+                
+                btnPause.textContent = "Pause";
+                btnPause.classList.remove('paused');
+                
+                updateActiveStyling();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // Case 2: Game in progress (or paused)
+            // Rules: You can only end your turn if it is YOUR turn.
+            if (activePlayer === playerClicked) {
+                // Switch turn
+                activePlayer = playerClicked === 1 ? 2 : 1;
+                
+                // Apply increment
+                if (playerClicked === 1 && p1Time > 0) p1Time += incrementMs;
+                if (playerClicked === 2 && p2Time > 0) p2Time += incrementMs;
+                
+                // Unpause if paused
+                if (isPaused) {
+                    isPaused = false;
+                    btnPause.textContent = "Pause";
+                    btnPause.classList.remove('paused');
+                }
+                
+                lastTimestamp = performance.now();
+                updateActiveStyling();
+                
+                // Update display immediately to show increment
+                updateDisplay(1, p1Time);
+                updateDisplay(2, p2Time);
+
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function updateActiveStyling() {
+            if (activePlayer === 1) {
+                area1.classList.add('active');
+                area2.classList.remove('active');
+            } else {
+                area2.classList.add('active');
+                area1.classList.remove('active');
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (isPaused || isGameOver) return;
+            
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const delta = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+
+            if (activePlayer === 1) {
+                p1Time -= delta;
+                if (p1Time <= 0) {
+                    p1Time = 0;
+                    endGame(1);
+                }
+                updateDisplay(1, p1Time);
+            } else {
+                p2Time -= delta;
+                if (p2Time <= 0) {
+                    p2Time = 0;
+                    endGame(2);
+                }
+                updateDisplay(2, p2Time);
+            }
+
+            if (!isGameOver) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.ceil(ms / 1000);
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+            return `${mStr}:${sStr}`;
+        }
+
+        function updateDisplay(player, timeMs) {
+            const timeStr = formatTime(timeMs);
+            if (player === 1) timer1El.textContent = timeStr;
+            else timer2El.textContent = timeStr;
+        }
+
+        function endGame(losingPlayer) {
+            isGameOver = true;
+            isPaused = true;
+            
+            if (losingPlayer === 1) {
+                area1.classList.remove('active');
+                area1.classList.add('lost');
+                status1El.style.display = 'block';
+            } else {
+                area2.classList.remove('active');
+                area2.classList.add('lost');
+                status2El.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
