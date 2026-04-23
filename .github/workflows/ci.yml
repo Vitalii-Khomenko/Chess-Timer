@@ -1,0 +1,43 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate HTML
+        run: npx --yes htmlhint index.html
+
+      - name: Validate Inline JavaScript Syntax
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const match = html.match(/<script>([\s\S]*?)<\/script>/i);
+
+          if (!match) {
+            console.error('No inline <script> block found in index.html');
+            process.exit(1);
+          }
+
+          fs.writeFileSync('.inline-script-check.js', match[1]);
+          NODE
+
+          node --check .inline-script-check.js
+          rm -f .inline-script-check.js

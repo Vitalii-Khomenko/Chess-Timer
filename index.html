@@ -219,7 +219,7 @@
             </div>
 
             <div class="input-group">
-                <label for="seconds">Extra Seconds (Increment)</label>
+                <label for="increment">Extra Seconds (Increment)</label>
                 <input type="number" id="increment" value="0" min="0" max="60">
             </div>
 
@@ -265,12 +265,6 @@
         let lastTimestamp = 0;
         let animationFrameId = null;
 
-        // Colors
-        const COLOR_ACTIVE = "#4CAF50";
-        const COLOR_INACTIVE = "#333333";
-        const COLOR_PAUSED = "#555555";
-        const COLOR_LOST = "#e53935";
-
         // Setup elements
         const setupScreen = document.getElementById('setup-screen');
         const gameScreen = document.getElementById('game-screen');
@@ -289,12 +283,34 @@
         // Initialization
         document.getElementById('btn-start').addEventListener('click', startGame);
 
+        function clamp(value, min, max) {
+            return Math.min(max, Math.max(min, value));
+        }
+
+        function stopLoop() {
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        function startLoop() {
+            if (animationFrameId === null && !isPaused && !isGameOver) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
         function startGame() {
-            const mins = parseInt(inputMinutes.value) || 5;
-            const inc = parseInt(inputIncrement.value) || 0;
+            stopLoop();
+            const minsRaw = Number.parseInt(inputMinutes.value, 10);
+            const incRaw = Number.parseInt(inputIncrement.value, 10);
+            const mins = Number.isFinite(minsRaw) ? clamp(minsRaw, 1, 180) : 5;
+            const inc = Number.isFinite(incRaw) ? clamp(incRaw, 0, 60) : 0;
             
             initialTimeMs = mins * 60 * 1000;
             incrementMs = inc * 1000;
+            inputMinutes.value = mins;
+            inputIncrement.value = inc;
 
             p1Time = initialTimeMs;
             p2Time = initialTimeMs;
@@ -319,7 +335,7 @@
         }
 
         function showSetup() {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            stopLoop();
             setupScreen.style.display = 'flex';
             gameScreen.style.display = 'none';
         }
@@ -349,12 +365,13 @@
             if (isPaused) {
                 btnPause.textContent = "Resume";
                 btnPause.classList.add('paused');
+                stopLoop();
                 lastTimestamp = 0; // reset timestamp
             } else {
                 btnPause.textContent = "Pause";
                 btnPause.classList.remove('paused');
                 lastTimestamp = performance.now();
-                requestAnimationFrame(gameLoop);
+                startLoop();
             }
         }
 
@@ -374,7 +391,7 @@
                 btnPause.classList.remove('paused');
                 
                 updateActiveStyling();
-                requestAnimationFrame(gameLoop);
+                startLoop();
                 return;
             }
 
@@ -402,7 +419,7 @@
                 updateDisplay(1, p1Time);
                 updateDisplay(2, p2Time);
 
-                requestAnimationFrame(gameLoop);
+                startLoop();
             }
         }
 
@@ -417,6 +434,7 @@
         }
 
         function gameLoop(timestamp) {
+            animationFrameId = null;
             if (isPaused || isGameOver) return;
             
             if (!lastTimestamp) lastTimestamp = timestamp;
@@ -454,14 +472,17 @@
         }
 
         function updateDisplay(player, timeMs) {
+            const area = player === 1 ? area1 : area2;
             const timeStr = formatTime(timeMs);
             if (player === 1) timer1El.textContent = timeStr;
             else timer2El.textContent = timeStr;
+            area.classList.toggle('warn', timeMs > 0 && timeMs <= 10_000);
         }
 
         function endGame(losingPlayer) {
             isGameOver = true;
             isPaused = true;
+            stopLoop();
             
             if (losingPlayer === 1) {
                 area1.classList.remove('active');
@@ -472,6 +493,9 @@
                 area2.classList.add('lost');
                 status2El.style.display = 'block';
             }
+
+            btnPause.textContent = "Game Over";
+            btnPause.classList.add('paused');
         }
     </script>
 </body>

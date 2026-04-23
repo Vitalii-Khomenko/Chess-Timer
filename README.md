@@ -1,42 +1,60 @@
 # Chess Timer
 
-A simple, lightweight, and responsive chess timer web application designed for smartphones.
+A lightweight, full-screen, mobile-friendly chess clock built as a single HTML file.
 
-## Features
+## Highlights
 
-*   **Responsive Design:** Optimized for mobile screens with large touch areas.
-*   **Dual Timers:** Supports two players with independent countdowns.
-*   **Customizable Time Controls:** Set initial minutes and increment (in seconds) per move.
-*   **Face-to-Face Mode:** Player 2's interface is inverted for easy viewing from the opposite side of the device.
-*   **Visual Indicators:**
-    *   Green background for the active player.
-    *   Red background and "TIME UP" message when time runs out.
-*   **Controls:** Pause, Reset, and detailed configuration settings.
-*   **Single File:** All HTML, CSS, and JavaScript are contained in one `index.html` file, requiring no internet connection or external dependencies.
+- Responsive layout designed for smartphone touch input.
+- Two independent player timers with turn switching.
+- Configurable base time (minutes) and per-move increment (seconds).
+- Face-to-face mode with the top side rotated for Player 2.
+- Clear state indicators for active play, low time, and time loss.
+- Active player highlighted in green.
+- Low-time warning in orange during the last 10 seconds.
+- Time loss shown in red with a "TIME UP" message.
+- Central controls for `Pause/Resume`, `Reset`, and `New` game setup.
 
-## How to Use
+## How It Works
 
-1.  Open `index.html` in your web browser (mobile preferred).
-2.  **Setup:**
-    *   Enter the desired time in minutes.
-    *   Enter the increment in seconds (optional).
-    *   Click "START".
-3.  **To Start the Game:**
-    *   **The player who moves first should tap their own timer area to start their time.**
-4.  **During Play:**
-    *   After making a move, tap your timer area to end your turn and start the opponent's timer.
-    *   The timer adds the increment (if set) automatically when you end your turn.
-5.  **Controls:**
-    *   **Pause:** Temporarily stops the timer. Use "Resume" to continue.
-    *   **Reset:** Resets the current game to initial values.
-    *   **New:** Returns to the setup screen to change time controls.
+1. Open `index.html` in any modern browser.
+2. Set:
+   - `Minutes per player`
+   - `Extra Seconds (Increment)`
+3. Press `START`.
+4. Start the clock by tapping the side of the player who is to move first.
+5. After each move, tap your own side to end your turn and start the opponent's clock.
+6. Use:
+   - `Pause/Resume` to temporarily stop or continue.
+   - `Reset` to restart with current setup values.
+   - `New` to return to setup and choose different time controls.
 
-## Installation
+## Technical Notes
 
-No installation required. Simply download the `index.html` file and open it in any modern web browser.
+- Runs fully offline.
+- No external libraries or frameworks.
+- Includes protection against duplicate animation loops for stable timing behavior.
 
-## Technologies
+## Manual Smoke Check (Phone)
 
-*   HTML5
-*   CSS3
-*   JavaScript (ES6+)
+Use this quick checklist on a real smartphone (for example Samsung A55):
+
+1. Open `index.html`, set `5` minutes and `2` increment, tap `START`.
+Expected: setup screen hides, both timers show `05:00`, center button shows `Start`.
+2. Tap Player 1 area once.
+Expected: Player 1 timer starts decreasing, Player 1 side is active (green), button shows `Pause`.
+3. Tap Player 1 area again after 2-3 seconds.
+Expected: turn switches to Player 2, Player 1 gets `+2` seconds, Player 2 timer starts decreasing.
+4. Tap `Pause`, wait 3 seconds, then tap `Resume`.
+Expected: time does not change while paused, then continues from same value after resume.
+5. Set a very short game (`1` minute, `0` increment), let one side run to zero.
+Expected: losing side becomes red, shows `TIME UP`, timer stops, button shows `Game Over`.
+6. Tap `Reset`.
+Expected: confirmation dialog appears; after confirm, game resets with same setup values.
+7. Tap `New`.
+Expected: returns to setup screen and allows changing time controls.
+
+## Stack
+
+- HTML5
+- CSS3
+- Vanilla JavaScript (ES6+)
